@@ -19,7 +19,13 @@ with tab1:
     st.header("Analyze Your Gmail")
     if st.button("🔐 Connect Gmail"):
         SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        try:
+            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        except:
+            st.error("Gmail credentials not available on cloud. Use locally!")
+            st.stop()
+        
         service = build('gmail', 'v1', credentials=creds)
         results = service.users().messages().list(userId='me', maxResults=50).execute()
         messages = results.get('messages', [])
@@ -36,12 +42,14 @@ with tab1:
             pred = classifier.predict([features])[0]
             if pred == 1:
                 spam_count += 1
+                st.write(f"🚨 SPAM: {subject}")
             else:
                 real_count += 1
+                st.write(f"✅ REAL: {subject}")
         
-        st.metric("Real", real_count)
-        st.metric("Spam", spam_count)
-
+        col1, col2 = st.columns(2)
+        col1.metric("Real Emails", real_count)
+        col2.metric("Spam Emails", spam_count)
 with tab2:
     col1, col2, col3 = st.columns(3)
     col1.metric("Accuracy", "92.07%")
